@@ -57,6 +57,8 @@ import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
+import java.util.HashMap;
+
 import br.com.carlosrafaelgn.fplay.activity.ActivityVisualizer;
 import br.com.carlosrafaelgn.fplay.activity.ClientActivity;
 import br.com.carlosrafaelgn.fplay.list.FileSt;
@@ -106,17 +108,20 @@ import br.com.carlosrafaelgn.fplay.visualizer.Visualizer;
 public final class ActivityMain extends ClientActivity implements Timer.TimerHandler, Player.PlayerObserver, View.OnClickListener, BgSeekBar.OnBgSeekBarChangeListener, SongList.ItemClickListener, BgListView.OnAttachedObserver, BgListView.OnBgListViewKeyDownObserver, ActivityFileSelection.OnFileSelectionListener, BgButton.OnPressingChangeListener {
 	private static final int MAX_SEEK = 10000, MNU_ADDSONGS = 100, MNU_CLEARLIST = 101, MNU_LOADLIST = 102, MNU_SAVELIST = 103, MNU_TOGGLECONTROLMODE = 104, MNU_RANDOMMODE = 105, MNU_EFFECTS = 106, MNU_VISUALIZER = 107, MNU_SETTINGS = 108, MNU_EXIT = 109, MNU_SORT_BY_TITLE = 110, MNU_SORT_BY_ARTIST = 111, MNU_SORT_BY_ALBUM = 112, MNU_VISUALIZER_SPECTRUM = 113, MNU_REPEAT = 114, MNU_REPEAT_ONE = 115, MNU_VISUALIZER_BLUETOOTH = 116, MNU_VISUALIZER_LIQUID = 117, MNU_VISUALIZER_SPIN = 118, MNU_VISUALIZER_PARTICLE = 119, MNU_VISUALIZER_IMMERSIVE_PARTICLE = 120, MNU_VISUALIZER_ALBUMART = 121, MNU_REPEAT_NONE = 122, MNU_VISUALIZER_IMMERSIVE_PARTICLE_VR = 123, MNU_VISUALIZER_SPECTRUM2 = 124;
 	private View vwVolume;
+	private View vwRating;
 	private TextView lblTitle, lblArtist, lblTrack, lblAlbum, lblLength, lblMsgSelMove;
 	private TextIconDrawable lblTitleIcon;
-	private BgSeekBar barSeek, barVolume;
+	private BgSeekBar barSeek, barVolume, barRating;
 	private ViewGroup panelControls, panelSecondary, panelSelection;
 	private BgButton btnAdd, btnPrev, btnPlay, btnNext, btnMenu, btnMoreInfo, btnMoveSel, btnRemoveSel, btnCancelSel, btnDecreaseVolume, btnIncreaseVolume, btnVolume;
 	private BgListView list;
 	private Timer tmrSong, tmrUpdateVolumeDisplay, tmrVolume;
-	private int firstSel, lastSel, lastTime, volumeButtonPressed, tmrVolumeInitialDelay, vwVolumeId, pendingListCommand;
+	private int firstSel, lastSel, lastTime, volumeButtonPressed, tmrVolumeInitialDelay, vwVolumeId, vwRatingId, pendingListCommand;
 	private boolean skipToDestruction, forceFadeOut, isCreatingLayout;//, ignoreAnnouncement;
 	private StringBuilder timeBuilder, volumeBuilder;
 	public static boolean localeHasBeenChanged;
+
+	private HashMap<String, Integer> fileRatings = new HashMap<>();
 
 	@Override
 	public CharSequence getTitle() {
@@ -180,6 +185,15 @@ public final class ActivityMain extends ClientActivity implements Timer.TimerHan
 			btnVolume.setText(icon);
 		else if (barVolume != null)
 			barVolume.setIcon(icon);
+	}
+
+	private void updateRatingDisplay() {
+		if(Player.localSong != null && Player.localSong.path!=null) {
+			Integer value=fileRatings.get(Player.localSong.path);
+			barRating.setValue(value);
+			barRating.setText(value + "");
+		}
+
 	}
 	
 	private void updateVolumeDisplay(int volume) {
@@ -1147,6 +1161,8 @@ public final class ActivityMain extends ClientActivity implements Timer.TimerHan
 			barVolume = (BgSeekBar)findViewById(R.id.barVolume);
 			btnVolume = (BgButton)findViewById(R.id.btnVolume);
 
+			barRating = (BgSeekBar)findViewById(R.id.barRating);
+
 			if (UI.isLargeScreen) {
 				UI.mediumTextAndColor((TextView)findViewById(R.id.lblTitleStatic));
 				UI.mediumTextAndColor((TextView)findViewById(R.id.lblArtistStatic));
@@ -1221,6 +1237,14 @@ public final class ActivityMain extends ClientActivity implements Timer.TimerHan
 				barVolume.setIcon(UI.ICON_VOLUME4);
 				vwVolume = barVolume;
 				vwVolumeId = R.id.barVolume;
+
+				barRating.setAdditionalContentDescription(getText(R.string.volume).toString());
+				barRating.setOnBgSeekBarChangeListener(this);
+				barRating.setMax(10);
+				barRating.setVertical(true);
+				barRating.setKeyIncrement(1);
+				vwRating = barRating;
+				vwRatingId = R.id.barRating;
 			}
 
 			if (UI.isLargeScreen) {
@@ -1369,6 +1393,7 @@ public final class ActivityMain extends ClientActivity implements Timer.TimerHan
 		Player.songs.setItemClickListener(this);
 		Player.songs.setObserver(list);
 		updateVolumeDisplay(Integer.MIN_VALUE);
+		updateRatingDisplay();
 		if (list != null)
 			list.notifyMeWhenFirstAttached(this);
 		//ignoreAnnouncement = true;
@@ -1428,6 +1453,7 @@ public final class ActivityMain extends ClientActivity implements Timer.TimerHan
 		lblMsgSelMove = null;
 		barSeek = null;
 		barVolume = null;
+		barRating = null;
 		vwVolume = null;
 		btnAdd = null;
 		btnPrev = null;
@@ -1570,6 +1596,16 @@ public final class ActivityMain extends ClientActivity implements Timer.TimerHan
 					Song.formatTime(value, timeBuilder);
 					seekBar.setText(timeBuilder.toString());
 				}
+			} else if (seekBar == barRating) {
+				if (value < 0) {
+					seekBar.setText(R.string.no_info);
+					seekBar.setValue(0);
+				} else {
+					if(Player.localSong != null && Player.localSong.path!=null) {
+						fileRatings.put(Player.localSong.path, value);
+						seekBar.setText(value + "");
+					}
+				}
 			}
 		}
 	}
@@ -1581,6 +1617,7 @@ public final class ActivityMain extends ClientActivity implements Timer.TimerHan
 				if (UI.expandSeekBar && !UI.isLargeScreen) {
 					UI.animationReset();
 					UI.animationAddViewToHide(vwVolume);
+					UI.animationAddViewToHide(vwRating);
 					UI.animationCommit(isCreatingLayout, null);
 				}
 				return true;
@@ -1603,6 +1640,7 @@ public final class ActivityMain extends ClientActivity implements Timer.TimerHan
 			if (UI.expandSeekBar && !UI.isLargeScreen) {
 				UI.animationReset();
 				UI.animationAddViewToShow(vwVolume);
+				UI.animationAddViewToShow(vwRating);
 				UI.animationCommit(isCreatingLayout, null);
 			}
 		}
