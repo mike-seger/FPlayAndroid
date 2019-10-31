@@ -121,12 +121,14 @@
         android:id="@+id/list"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_alignParentBottom="true"
         android:layout_below="@+id/lblPath"
+        android:layout_alignParentBottom="true"
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="-4dp"
         android:nextFocusForward="@+id/btnGoBack"
         android:splitMotionEvents="false">
 
-        <requestFocus/>
+        <requestFocus />
     </br.com.carlosrafaelgn.fplay.ui.BgListView>
 
     <RelativeLayout
