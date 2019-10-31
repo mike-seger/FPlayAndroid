@@ -21,6 +21,7 @@
     <string name="no">No</string>
     <string name="got_it">Got it!</string>
     <string name="volume">Volume</string>
+    <string name="rating">Rating</string>
     <string name="go_to">Go to</string>
     <string name="msg_sel">Click to select more items</string>
     <string name="msg_move">Click to move selected items</string>
