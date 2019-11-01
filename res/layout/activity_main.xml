@@ -35,7 +35,8 @@
             android:paddingTop="2dp"
             android:scrollHorizontally="true"
             android:singleLine="true"
-            android:text="@string/nothing_playing"/>
+            android:text="@string/nothing_playing"
+            android:visibility="gone"/>
 
         <TextView
             android:id="@+id/lblMsgSelMove"
@@ -230,6 +231,28 @@
                 android:nextFocusRight="@+id/list"
                 android:nextFocusUp="@+id/list"/>
         </RelativeLayout>
+
+        <LinearLayout
+            android:id="@+id/panelTertiary"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:baselineAligned="false"
+            android:orientation="horizontal"
+            android:splitMotionEvents="false">
+
+            <br.com.carlosrafaelgn.fplay.ui.BgSeekBar
+                android:id="@+id/barRating"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="16dp"
+                android:layout_marginRight="16dp"
+                android:layout_weight="1"
+                android:nextFocusDown="@+id/btnMenu"
+                android:nextFocusForward="@+id/barSeek"
+                android:nextFocusLeft="@+id/list"
+                android:nextFocusRight="@+id/barSeek"
+                android:nextFocusUp="@+id/list"/>
+        </LinearLayout>
 
     </LinearLayout>
 
