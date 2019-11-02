@@ -41,12 +41,14 @@ import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.media.AudioManager;
 import android.os.Build;
+import android.os.Environment;
 import android.text.InputType;
 import android.text.Spannable;
 import android.text.SpannableStringBuilder;
 import android.text.TextUtils.TruncateAt;
 import android.text.style.DynamicDrawableSpan;
 import android.text.style.ImageSpan;
+import android.util.Log;
 import android.util.TypedValue;
 import android.view.ContextMenu;
 import android.view.ContextMenu.ContextMenuInfo;
@@ -59,7 +61,15 @@ import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
-import java.util.HashMap;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.util.Map;
+import java.util.TreeMap;
 
 import br.com.carlosrafaelgn.fplay.activity.ActivityVisualizer;
 import br.com.carlosrafaelgn.fplay.activity.ClientActivity;
@@ -191,14 +201,82 @@ public final class ActivityMain extends ClientActivity implements Timer.TimerHan
 
 	private int loadRating(String path) {
 		if(ratingPrefs==null) return 0;
-		return ratingPrefs.getInt(path, -1);
+		return ratingPrefs.getInt(getRatingId(path), -1);
 	}
 
 	private void saveRating(String path, int value) {
 		if(ratingPrefs==null) return;
 		SharedPreferences.Editor editor = ratingPrefs.edit();
-		editor.putInt(path, value);
-		editor.commit();
+		editor.putInt(getRatingId(path), value);
+		editor.apply();
+	}
+
+	private String getRatingId(String path) {
+		String [] parts=path.split(File.separator);
+		if(parts.length<2) {
+			return path;
+		}
+		return parts[parts.length-2]+File.separator+parts[parts.length-1];
+	}
+
+	private File getRatingsFile() {
+		File folder=getHostActivity().getExternalFilesDir(null);
+		if (Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)){
+			folder = new File(Environment.getExternalStoragePublicDirectory(
+					Environment.DIRECTORY_DOCUMENTS), "fplaydata");
+			folder.mkdirs();
+//				String dir = Environment.getExternalStorageDirectory()+File.separator+"fplaydata";
+//				folder = new File(dir);
+//				folder.mkdirs();
+		}
+		Log.i("FPLAY", "DL: "+Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getAbsolutePath());
+		Log.i("FPLAY", folder.getAbsolutePath());
+
+		File file=new File(folder, "ratings.txt");
+		return file;
+	}
+
+	private void exportRatings() {
+		try (BufferedWriter bw=new BufferedWriter(new OutputStreamWriter(
+				new FileOutputStream(getRatingsFile()), "UTF-8"))) {
+			Map<String, ?> ratingMap = new TreeMap<>(ratingPrefs.getAll());
+			for(String key : ratingMap.keySet()) {
+				bw.append(key);
+				bw.append("\t");
+				bw.append(ratingMap.get(key)+"");
+				bw.append("\n");
+			}
+			bw.flush();
+		} catch(Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+	private void importRatings() {
+		if(ratingPrefs.getAll().size()==0) {
+			int lineNo=1, imported=0;
+			String line=null;
+			try (BufferedReader br=new BufferedReader(new InputStreamReader(
+					new FileInputStream(getRatingsFile()), "UTF-8"));) {
+				SharedPreferences.Editor editor = ratingPrefs.edit();
+				while((line=br.readLine())!=null) {
+					if(line.indexOf("\t")>0) {
+						String [] cols=line.split("\t");
+						String fileName=cols[0];
+						int rating=Integer.parseInt(cols[1]);
+						editor.putInt(fileName, rating);
+						imported++;
+					}
+					lineNo++;
+					line=null;
+				}
+				editor.apply();
+				Log.i("FPLAY", String.format("Imported %d ratings", imported));
+			} catch(Exception e) {
+				Log.i("FPLAY", "Problem reading rating on line: "+lineNo+" -> "+line);
+				e.printStackTrace();
+			}
+		}
 	}
 
 	private void updateRatingDisplay() {
@@ -1409,6 +1487,7 @@ public final class ActivityMain extends ClientActivity implements Timer.TimerHan
 	private void resume() {
 		Context context = this.getHostActivity();
 		ratingPrefs = context.getSharedPreferences(ratingPrefKey, Context.MODE_PRIVATE);
+		importRatings();
 		Player.songs.setItemClickListener(this);
 		Player.songs.setObserver(list);
 		updateVolumeDisplay(Integer.MIN_VALUE);
@@ -1458,6 +1537,7 @@ public final class ActivityMain extends ClientActivity implements Timer.TimerHan
 			localeHasBeenChanged = true;
 			UI.reapplyForcedLocale(getHostActivity());
 		}
+		exportRatings();
 	}
 	
 	@Override
