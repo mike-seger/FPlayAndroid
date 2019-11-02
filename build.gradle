@@ -32,14 +32,14 @@ android {
 	productFlavors {
 		traditional {
 			applicationId "br.com.carlosrafaelgn.fplay"
-			minSdkVersion 10
+			minSdkVersion 19
 			targetSdkVersion 23
 			buildConfigField 'boolean', 'X', 'false'
 		}
 
 		x {
 			applicationId "br.com.carlosrafaelgn.fplay.x"
-			minSdkVersion 16
+			minSdkVersion 19
 			targetSdkVersion 23
 			buildConfigField 'boolean', 'X', 'true'
 		}
