@@ -149,11 +149,13 @@ public final class SongView extends View implements View.OnClickListener, View.O
 
 	@Override
 	public void setBackgroundColor(int color) {
-		super.setBackgroundResource(0);
+		//super.setBackgroundResource(0);
+		super.setBackgroundColor(0x00000000);
 	}
 
 	@Override
 	public Drawable getBackground() {
+		//return getBackground();
 		return null;
 	}
 
