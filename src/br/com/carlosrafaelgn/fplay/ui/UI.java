@@ -1325,8 +1325,10 @@ public final class UI implements Animation.AnimationListener, Interpolator {
 			return Player.theApplication.getText(R.string.creamy).toString();
 		case THEME_FPLAY:
 			return "FPlay";
+		case THEME_FPLAY_DARK:
+			return "FPlay"+ Player.theApplication.getText(R.string.dark).toString();
 		default:
-			return "FPlay " + Player.theApplication.getText(R.string.dark).toString();
+			return Player.theApplication.getText(R.string.blue).toString();
 		}
 	}
 
