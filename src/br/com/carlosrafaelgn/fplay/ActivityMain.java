@@ -68,6 +68,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.util.Date;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -134,6 +135,7 @@ public final class ActivityMain extends ClientActivity implements Timer.TimerHan
 
 	private final static String ratingPrefKey="ratings";
 	private SharedPreferences ratingPrefs;
+	private long ratingSaved, ratingsExported;
 
 	@Override
 	public CharSequence getTitle() {
@@ -209,6 +211,7 @@ public final class ActivityMain extends ClientActivity implements Timer.TimerHan
 		SharedPreferences.Editor editor = ratingPrefs.edit();
 		editor.putInt(getRatingId(path), value);
 		editor.apply();
+		ratingSaved=System.currentTimeMillis();
 	}
 
 	private String getRatingId(String path) {
@@ -237,6 +240,11 @@ public final class ActivityMain extends ClientActivity implements Timer.TimerHan
 	}
 
 	private void exportRatings() {
+		long time=System.currentTimeMillis();
+		if(ratingsExported>ratingSaved) {
+			Log.i("FPLAY", String.format("Ratings last exported %s", new Date(ratingsExported).toString()));
+			return;
+		}
 		try (BufferedWriter bw=new BufferedWriter(new OutputStreamWriter(
 				new FileOutputStream(getRatingsFile()), "UTF-8"))) {
 			Map<String, ?> ratingMap = new TreeMap<>(ratingPrefs.getAll());
@@ -247,6 +255,9 @@ public final class ActivityMain extends ClientActivity implements Timer.TimerHan
 				bw.append("\n");
 			}
 			bw.flush();
+			time=System.currentTimeMillis()-time;
+			ratingsExported=System.currentTimeMillis();
+			Log.i("FPLAY", String.format("Export in %d ms", time));
 		} catch(Exception e) {
 			e.printStackTrace();
 		}
@@ -960,6 +971,7 @@ public final class ActivityMain extends ClientActivity implements Timer.TimerHan
 				bringCurrentIntoView();
 		} else if (view == btnMenu) {
 			CustomContextMenu.openContextMenu(btnMenu, this);
+			exportRatings();
 		} else if (view == btnMoreInfo) {
 			showMoreInfo();
 		} else if (view == btnMoveSel) {
