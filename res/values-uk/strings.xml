@@ -372,4 +372,5 @@
     <string name="access_code">Код доступу</string>
     <string name="invalid_access_code">Неправильний код доступу :(</string>
 
+    <string name="rating">Рейтинг</string>
 </resources>

@@ -372,4 +372,5 @@
     <string name="access_code">Code d\'accès</string>
     <string name="invalid_access_code">Code d\'accès invalide :(</string>
 
+    <string name="rating">Classement</string>
 </resources>
