@@ -381,8 +381,10 @@ public final class UI implements Animation.AnimationListener, Interpolator {
 			//lots of 7" phones/tablets with resolutions starting at around 533dp ***
 			final int _500dp = (int)((500.0f * displayMetrics.density) + 0.5f);
 			isLandscape = (screenWidth >= screenHeight);
-			isLargeScreen = ((screenWidth >= _500dp) && (screenHeight >= _500dp));
-			isLowDpiScreen = (displayMetrics.densityDpi < 160);
+			//isLargeScreen = ((screenWidth >= _500dp) && (screenHeight >= _500dp));
+			//isLowDpiScreen = (displayMetrics.densityDpi < 160);
+			isLargeScreen = true;
+			isLowDpiScreen = false;
 		}
 	}
 	
@@ -746,9 +748,12 @@ public final class UI implements Animation.AnimationListener, Interpolator {
 		screenHeight = info.screenHeight;
 		usableScreenWidth = info.usableScreenWidth;
 		usableScreenHeight = info.usableScreenHeight;
-		isLargeScreen = (isTV || info.isLargeScreen);
+		//isLargeScreen = (isTV || info.isLargeScreen);
+		isLargeScreen = true;
+
 		isLandscape = info.isLandscape;
-		isLowDpiScreen = info.isLowDpiScreen;
+		//isLowDpiScreen = info.isLowDpiScreen;
+		isLowDpiScreen = false;
 		//let's do some guessing here... :/
 		deviceSupportsAnimations = ((Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) || ((Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) && (density >= 1.5f || isLargeScreen)));
 

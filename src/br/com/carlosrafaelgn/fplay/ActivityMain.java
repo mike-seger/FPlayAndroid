@@ -1095,7 +1095,9 @@ public final class ActivityMain extends ClientActivity implements Timer.TimerHan
 			finish(0, null, false);
 			return;
 		}
-		setContentView(Player.controlMode ? (UI.isLandscape ? R.layout.activity_main_control_l : R.layout.activity_main_control) : (UI.isLandscape ? ((UI.isLargeScreen && UI.controlsToTheLeft) ? R.layout.activity_main_l_left : R.layout.activity_main_l) : R.layout.activity_main), true, forceFadeOut);
+		boolean isLargeScreen=UI.isLargeScreen;
+
+		setContentView(Player.controlMode ? (UI.isLandscape ? R.layout.activity_main_control_l : R.layout.activity_main_control) : (UI.isLandscape ? ((isLargeScreen && UI.controlsToTheLeft) ? R.layout.activity_main_l_left : R.layout.activity_main_l) : R.layout.activity_main), true, forceFadeOut);
 		lblTitle = (TextView)findViewById(R.id.lblTitle);
 		btnPrev = (BgButton)findViewById(R.id.btnPrev);
 		btnPrev.setOnClickListener(this);
@@ -1169,7 +1171,7 @@ public final class ActivityMain extends ClientActivity implements Timer.TimerHan
 			lblTitleIcon = new TextIconDrawable(UI.ICON_PLAY, UI.colorState_text_control_mode_reactive.getDefaultColor(), panelH >> 1);
 			lblTitle.setCompoundDrawables(null, null, lblTitleIcon, null);
 
-			final int lds = ((UI.isLowDpiScreen && !UI.isLargeScreen) ? (UI.isLandscape ? ((UI.controlMargin * 3) >> 1) : UI.controlMargin) : UI.controlLargeMargin);
+			final int lds = ((UI.isLowDpiScreen && !isLargeScreen) ? (UI.isLandscape ? ((UI.controlMargin * 3) >> 1) : UI.controlMargin) : UI.controlLargeMargin);
 			btnDecreaseVolume.setPadding(lds, lds, lds, lds);
 			btnIncreaseVolume.setPadding(lds, lds, lds, lds);
 			btnVolume.setPadding(lds, lds, lds, lds);
@@ -1218,8 +1220,8 @@ public final class ActivityMain extends ClientActivity implements Timer.TimerHan
 			lblTitle.setTextColor(UI.colorState_text_title_static);
 			
 			lblArtist = (TextView)findViewById(R.id.lblArtist);
-			if (UI.isLargeScreen == (lblArtist == null))
-				UI.isLargeScreen = (lblArtist != null);
+			if (isLargeScreen == (lblArtist == null))
+				isLargeScreen = (lblArtist != null);
 			
 			lblMsgSelMove = (TextView)findViewById(R.id.lblMsgSelMove);
 			UI.largeText(lblMsgSelMove);
@@ -1231,7 +1233,7 @@ public final class ActivityMain extends ClientActivity implements Timer.TimerHan
 			barSeek.setAdditionalContentDescription(getText(R.string.go_to).toString());
 			barSeek.setOnBgSeekBarChangeListener(this);
 			barSeek.setMax(MAX_SEEK);
-			barSeek.setVertical(UI.isLandscape && !UI.isLargeScreen);
+			barSeek.setVertical(UI.isLandscape && !isLargeScreen);
 			barSeek.setFocusable(false);
 			btnPlay = (BgButton)findViewById(R.id.btnPlay);
 			btnPlay.setOnClickListener(this);
@@ -1255,13 +1257,13 @@ public final class ActivityMain extends ClientActivity implements Timer.TimerHan
 			panelSelection = (ViewGroup)findViewById(R.id.panelSelection);
 			btnMoreInfo = (BgButton)findViewById(R.id.btnMoreInfo);
 			btnMoreInfo.setOnClickListener(this);
-			btnMoreInfo.setIcon(UI.ICON_INFORMATION, UI.isLargeScreen || !UI.isLandscape, true);
+			btnMoreInfo.setIcon(UI.ICON_INFORMATION, isLargeScreen || !UI.isLandscape, true);
 			btnMoveSel = (BgButton)findViewById(R.id.btnMoveSel);
 			btnMoveSel.setOnClickListener(this);
-			btnMoveSel.setIcon(UI.ICON_MOVE, UI.isLargeScreen || !UI.isLandscape, true);
+			btnMoveSel.setIcon(UI.ICON_MOVE, isLargeScreen || !UI.isLandscape, true);
 			btnRemoveSel = (BgButton)findViewById(R.id.btnRemoveSel);
 			btnRemoveSel.setOnClickListener(this);
-			btnRemoveSel.setIcon(UI.ICON_DELETE, UI.isLargeScreen || !UI.isLandscape, true);
+			btnRemoveSel.setIcon(UI.ICON_DELETE, isLargeScreen || !UI.isLandscape, true);
 			btnCancelSel = (BgButton)findViewById(R.id.btnCancelSel);
 			btnCancelSel.setOnClickListener(this);
 			
@@ -1270,7 +1272,7 @@ public final class ActivityMain extends ClientActivity implements Timer.TimerHan
 
 			barRating = (BgSeekBar)findViewById(R.id.barRating);
 
-			if (UI.isLargeScreen) {
+			if (isLargeScreen) {
 				UI.mediumTextAndColor((TextView)findViewById(R.id.lblTitleStatic));
 				UI.mediumTextAndColor((TextView)findViewById(R.id.lblArtistStatic));
 				UI.mediumTextAndColor((TextView)findViewById(R.id.lblTrackStatic));
@@ -1301,7 +1303,7 @@ public final class ActivityMain extends ClientActivity implements Timer.TimerHan
 				btnVolume.setIcon(UI.ICON_VOLUME4);
 				vwVolume = btnVolume;
 				vwVolumeId = R.id.btnVolume;
-				if (UI.isLargeScreen) {
+				if (isLargeScreen) {
 					UI.setNextFocusForwardId(list, R.id.btnVolume);
 					UI.setNextFocusForwardId(barSeek, R.id.btnVolume);
 					barSeek.setNextFocusRightId(R.id.btnVolume);
@@ -1339,7 +1341,7 @@ public final class ActivityMain extends ClientActivity implements Timer.TimerHan
 							((Player.volumeControlType == Player.VOLUME_CONTROL_DB) ?
 								(-Player.VOLUME_MIN_DB / 100) :
 									100)));
-				barVolume.setVertical(UI.isLandscape && !UI.isLargeScreen);
+				barVolume.setVertical(UI.isLandscape && !isLargeScreen);
 				barVolume.setKeyIncrement(1);
 				barVolume.setIcon(UI.ICON_VOLUME4);
 				vwVolume = barVolume;
@@ -1354,7 +1356,7 @@ public final class ActivityMain extends ClientActivity implements Timer.TimerHan
 				}
 			}
 
-			if (UI.isLargeScreen) {
+			if (isLargeScreen) {
 				findViewById(R.id.panelInfo).setBackgroundDrawable(new BorderDrawable(UI.color_highlight, UI.color_window, ((UI.isLandscape && !UI.controlsToTheLeft) ? UI.thickDividerSize : 0), (!UI.isLandscape ? UI.thickDividerSize : 0), ((UI.isLandscape && UI.controlsToTheLeft) ? UI.thickDividerSize : 0), 0));
 			} else {
 				if (UI.isLandscape) {
