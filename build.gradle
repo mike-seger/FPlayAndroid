@@ -61,7 +61,7 @@ android {
 		traditional {
 			dimension "mode"
 			applicationId "br.com.carlosrafaelgn.fplay"
-			minSdkVersion 10
+			minSdkVersion 19
 			targetSdkVersion 28
 			buildConfigField 'boolean', 'X', 'false'
 		}
@@ -69,7 +69,7 @@ android {
 		x {
 			dimension "mode"
 			applicationId "br.com.carlosrafaelgn.fplay.x"
-			minSdkVersion 16
+			minSdkVersion 19
 			targetSdkVersion 28
 			buildConfigField 'boolean', 'X', 'true'
 		}

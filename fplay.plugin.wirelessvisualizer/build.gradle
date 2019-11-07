@@ -6,7 +6,7 @@ android {
 
 	defaultConfig {
 		applicationId "br.com.carlosrafaelgn.fplay.plugin.wirelessvisualizer"
-		minSdkVersion 10
+		minSdkVersion 19
 		targetSdkVersion 28
 	}
 	buildTypes {
