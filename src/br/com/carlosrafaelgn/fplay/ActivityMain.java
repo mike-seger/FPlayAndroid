@@ -34,8 +34,10 @@ package br.com.carlosrafaelgn.fplay;
 
 import android.Manifest;
 import android.annotation.TargetApi;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
@@ -43,6 +45,7 @@ import android.media.AudioManager;
 import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Environment;
 import android.provider.MediaStore;
 import android.provider.Settings;
 import android.text.InputType;
@@ -52,6 +55,7 @@ import android.text.TextUtils.TruncateAt;
 import android.text.method.LinkMovementMethod;
 import android.text.style.DynamicDrawableSpan;
 import android.text.style.ImageSpan;
+import android.util.Log;
 import android.util.TypedValue;
 import android.view.ContextMenu;
 import android.view.ContextMenu.ContextMenuInfo;
@@ -65,7 +69,17 @@ import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.util.Date;
 import java.util.Locale;
+import java.util.Map;
+import java.util.TreeMap;
 
 import br.com.carlosrafaelgn.fplay.activity.ActivityVisualizer;
 import br.com.carlosrafaelgn.fplay.activity.ClientActivity;
@@ -124,7 +138,7 @@ public final class ActivityMain extends ClientActivity implements Timer.TimerHan
 	private View vwVolume;
 	private TextView lblTitle, lblArtist, lblTrack, lblAlbumStatic, lblAlbum, lblLength, lblMsgSelMove;
 	private TextIconDrawable lblTitleIcon;
-	private BgSeekBar barSeek, barVolume;
+	private BgSeekBar barSeek, barVolume, barRating;
 	private ViewGroup panelControls, panelSecondary, panelSelection;
 	private BgButton btnAdd, btnPrev, btnPlay, btnNext, btnMenu, btnMoreInfo, btnMoveSel, btnRemoveSel, btnCancelSel, btnDecreaseVolume, btnIncreaseVolume, btnVolume, btnSetRingtone, btnShare;
 	private BgListView list;
@@ -133,6 +147,10 @@ public final class ActivityMain extends ClientActivity implements Timer.TimerHan
 	private boolean skipToDestruction, forceFadeOut, isCreatingLayout;//, ignoreAnnouncement;
 	private StringBuilder timeBuilder, volumeBuilder;
 	public static boolean localeHasBeenChanged;
+
+	private final static String ratingPrefKey="ratings";
+	private SharedPreferences ratingPrefs;
+	private long ratingSaved, ratingsExported;
 
 	@Override
 	public CharSequence getTitle() {
@@ -240,6 +258,128 @@ public final class ActivityMain extends ClientActivity implements Timer.TimerHan
 		if (barVolume != null) {
 			barVolume.setValue(value);
 			barVolume.setText(volumeToString(volume));
+		}
+	}
+
+	private int loadRating(String path) {
+		if(ratingPrefs==null) return 0;
+		return ratingPrefs.getInt(getRatingId(path), -1);
+	}
+
+	private void saveRating(String path, int value) {
+		if(ratingPrefs==null) return;
+		SharedPreferences.Editor editor = ratingPrefs.edit();
+		editor.putInt(getRatingId(path), value);
+		editor.apply();
+		ratingSaved=System.currentTimeMillis();
+	}
+
+	private String getRatingId(String path) {
+		String [] parts=path.split(File.separator);
+		if(parts.length<2) {
+			return path;
+		}
+		return parts[parts.length-2]+File.separator+parts[parts.length-1];
+	}
+
+	protected boolean shouldAskPermissions() {
+		return (Build.VERSION.SDK_INT > Build.VERSION_CODES.LOLLIPOP_MR1);
+	}
+
+	@TargetApi(Build.VERSION_CODES.M)
+	protected void askPermissions() {
+		String[] permissions = {
+				Manifest.permission.WRITE_EXTERNAL_STORAGE,
+				Manifest.permission.READ_EXTERNAL_STORAGE
+		};
+		int requestCode = 200;
+		getHostActivity().requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, requestCode);		getHostActivity().requestPermissions(permissions, requestCode);
+	}
+
+	private File getRatingsFile() {
+		if (!BuildConfig.X && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+			if (getHostActivity().checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+				if (shouldAskPermissions()) {
+					askPermissions();
+				}
+				Log.i("FPLAY", "Permission not granted");
+			}
+		}
+		File folder=getHostActivity().getExternalFilesDir(null);
+		if (Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)){
+			folder = new File(Environment.getExternalStoragePublicDirectory(
+					Environment.DIRECTORY_DOCUMENTS), "fplaydata");
+			//folder = new File(Environment.getExternalStorageDirectory() + "/Documents");
+
+			if(!folder.exists() && !folder.mkdirs()) {
+				Log.i("FPLAY", "Failed to create dir: "+folder.getAbsolutePath());
+			}
+		}
+		Log.i("FPLAY", "DL: "+Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).getAbsolutePath());
+		Log.i("FPLAY", folder.getAbsolutePath());
+
+		return new File(folder, "ratings.txt");
+	}
+
+	private void exportRatings() {
+		long time=System.currentTimeMillis();
+		if(ratingsExported>ratingSaved) {
+			Log.i("FPLAY", String.format("Ratings last exported %s", new Date(ratingsExported).toString()));
+			return;
+		}
+		try (BufferedWriter bw=new BufferedWriter(new OutputStreamWriter(
+				new FileOutputStream(getRatingsFile()), "UTF-8"))) {
+			Map<String, ?> ratingMap = new TreeMap<>(ratingPrefs.getAll());
+			for(String key : ratingMap.keySet()) {
+				bw.append(key);
+				bw.append("\t");
+				bw.append(ratingMap.get(key)+"");
+				bw.append("\n");
+			}
+			bw.flush();
+			time=System.currentTimeMillis()-time;
+			ratingsExported=System.currentTimeMillis();
+			Log.i("FPLAY", String.format("Export in %d ms", time));
+		} catch(Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+	private void importRatings() {
+		if (ratingPrefs.getAll().size() == 0) {
+			int lineNo = 1, imported = 0;
+			String line = null;
+			try (BufferedReader br = new BufferedReader(new InputStreamReader(
+					new FileInputStream(getRatingsFile()), "UTF-8"));) {
+				SharedPreferences.Editor editor = ratingPrefs.edit();
+				while ((line = br.readLine()) != null) {
+					if (line.indexOf("\t") > 0) {
+						String[] cols = line.split("\t");
+						String fileName = cols[0];
+						int rating = Integer.parseInt(cols[1]);
+						editor.putInt(fileName, rating);
+						imported++;
+					}
+					lineNo++;
+					line = null;
+				}
+				editor.apply();
+				Log.i("FPLAY", String.format("Imported %d ratings", imported));
+			} catch (Exception e) {
+				Log.i("FPLAY", "Problem reading rating on line: " + lineNo + " -> " + line);
+				e.printStackTrace();
+			}
+		}
+	}
+
+	private void updateRatingDisplay() {
+		if(barRating==null) {
+			return;
+		}
+		if(Player.localSong != null && Player.localSong.path!=null) {
+			int value=loadRating(Player.localSong.path);
+			barRating.setValue(value);
+			barRating.setText(value + "");
 		}
 	}
 
@@ -624,6 +764,7 @@ public final class ActivityMain extends ClientActivity implements Timer.TimerHan
 	@Override
 	public void onPlayerChanged(Song currentSong, boolean songHasChanged, boolean preparingHasChanged, Throwable ex) {
 		final String icon = (Player.localPlaying ? UI.ICON_PAUSE : UI.ICON_PLAY);
+		updateRatingDisplay();
 		if (btnPlay != null) {
 			btnPlay.setText(icon);
 			btnPlay.setContentDescription(getText(Player.localPlaying ? R.string.pause : R.string.play));
@@ -1097,6 +1238,7 @@ public final class ActivityMain extends ClientActivity implements Timer.TimerHan
 				bringCurrentIntoView();
 		} else if (view == btnMenu) {
 			CustomContextMenu.openContextMenu(btnMenu, this);
+			exportRatings();
 		} else if (view == btnMoreInfo) {
 			showMoreInfo();
 		} else if (view == btnMoveSel) {
@@ -1441,6 +1583,8 @@ public final class ActivityMain extends ClientActivity implements Timer.TimerHan
 			barVolume = findViewById(R.id.barVolume);
 			btnVolume = findViewById(R.id.btnVolume);
 
+			barRating = (BgSeekBar)findViewById(R.id.barRating);
+
 			if (UI.isLargeScreen) {
 				UI.mediumTextAndColor((TextView)findViewById(R.id.lblTitleStatic));
 				UI.mediumTextAndColor((TextView)findViewById(R.id.lblArtistStatic));
@@ -1474,6 +1618,15 @@ public final class ActivityMain extends ClientActivity implements Timer.TimerHan
 				btnVolume.setIcon(UI.ICON_VOLUME4);
 				vwVolume = btnVolume;
 				vwVolumeId = R.id.btnVolume;
+
+				if(barRating!=null) {
+					barRating.setAdditionalContentDescription(getText(R.string.rating).toString());
+					barRating.setOnBgSeekBarChangeListener(this);
+					barRating.setMax(10);
+					barRating.setVertical(true);
+					barRating.setKeyIncrement(1);
+				}
+
 				if (UI.isLargeScreen) {
 					UI.setNextFocusForwardId(list, R.id.btnVolume);
 					UI.setNextFocusForwardId(barSeek, R.id.btnVolume);
@@ -1694,9 +1847,14 @@ public final class ActivityMain extends ClientActivity implements Timer.TimerHan
 	}
 	
 	private void resume() {
+		Context context = getHostActivity();
+		ratingPrefs = context.getSharedPreferences(ratingPrefKey, Context.MODE_PRIVATE);
+		importRatings();
+
 		Player.songs.setItemClickListener(this);
 		Player.songs.setObserver(list);
 		updateVolumeDisplay(Integer.MIN_VALUE);
+		updateRatingDisplay();
 		if (list != null)
 			list.notifyMeWhenFirstAttached(this);
 		//ignoreAnnouncement = true;
@@ -1747,6 +1905,7 @@ public final class ActivityMain extends ClientActivity implements Timer.TimerHan
 			localeHasBeenChanged = true;
 			UI.reapplyForcedLocale(getHostActivity());
 		}
+		exportRatings();
 	}
 	
 	@Override
@@ -1762,6 +1921,7 @@ public final class ActivityMain extends ClientActivity implements Timer.TimerHan
 		lblMsgSelMove = null;
 		barSeek = null;
 		barVolume = null;
+		barRating = null;
 		vwVolume = null;
 		btnAdd = null;
 		btnPrev = null;
@@ -1922,6 +2082,16 @@ public final class ActivityMain extends ClientActivity implements Timer.TimerHan
 				} else {
 					Song.formatTime(value, timeBuilder);
 					seekBar.setText(timeBuilder.toString());
+				}
+			} else if (seekBar == barRating) {
+				if (value < 0) {
+					seekBar.setText(R.string.no_info);
+					seekBar.setValue(0);
+				} else {
+					if(Player.localSong != null && Player.localSong.path!=null) {
+						saveRating(Player.localSong.path, value);
+						seekBar.setText(value + "");
+					}
 				}
 			}
 		}
